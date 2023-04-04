@@ -45,7 +45,7 @@ python3 new_atlas/evaluate.py --name=my-anli-2index-evaluation-test10 \
     --reader_model_type=google/t5-base-lm-adapt \
     --text_maxlength=512 \
     --target_maxlength=5 \
-    --model_path=drive/MyDrive/experiments/rag/new_atlas/models/base/models/atlas/base \
+    --model_path=drive/MyDrive/experiments/rag/new_atlas/models/bases/models/atlas/base \
     --eval_data=drive/MyDrive/data/new_atlas/anli_data/test.jsonl \
     --per_gpu_batch_size=1 \
     --n_context=40 --retriever_n_context=40 \

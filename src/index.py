@@ -6,7 +6,11 @@
 import logging
 import math
 import os
-import pickle
+try:
+    import pickle5 as pickle
+except:
+    import pickle
+    
 from typing import Optional, Set, Tuple, Union, Any
 import faiss
 import faiss.contrib.torch_utils

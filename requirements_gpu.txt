@@ -5,3 +5,4 @@ tensorboard
 wget
 datasets
 faiss-gpu==1.7.2
+pickle5

@@ -5,3 +5,4 @@ tensorboard
 wget
 datasets
 faiss-cpu
+pickle5
