@@ -56,13 +56,13 @@ This repository supports pretraining and finetuning, for *both* large and small 
 
 
 ## TODO
-[] run on 2 shard of indices
-[] support int8 model training & inference
-[] observe focal property of counter factual
-[] support multi-modal inputs
+- [] run on 2 shard of indices
+- [] support int8 model training & inference
+- [] observe focal property of counter factual
+- [] support multi-modal inputs
 
 ## Observations
-[] Only run on 5G GPU memory and evaluation is slow even with 2 shards of indices. The slow is caused from model evaluation.
+- [] Only run on 5G GPU memory and evaluation is slow even with 2 shards of indices. The slow is caused from model evaluation.
 
 ## Installation
 
