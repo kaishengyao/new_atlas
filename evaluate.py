@@ -21,6 +21,8 @@ from src.tasks import get_task
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
+device='cuda' if torch.cuda.is_available() else 'cpu'
+
 
 def _get_eval_data_iterator(opt, data_path, task):
     data_iterator = task.data_iterator(data_path, opt.global_rank, opt.world_size, opt=opt, is_eval=True)
@@ -28,7 +30,7 @@ def _get_eval_data_iterator(opt, data_path, task):
     data_iterator = list(task.batch_iterator(data_iterator, opt.per_gpu_batch_size))
 
     if dist.is_initialized():
-        len_data = torch.tensor(len(data_iterator), device=torch.device("cuda"))
+        len_data = torch.tensor(len(data_iterator), device=torch.device(device))
         dist.all_reduce(len_data, torch.distributed.ReduceOp.MAX)
         dist.barrier()
         if len(data_iterator) < len_data.item():
@@ -57,8 +59,8 @@ def run_retrieval_only(model, index, opt, data_path, step=None):
             index,
             opt.n_context,
             query,
-            query_enc["input_ids"].cuda(),
-            query_enc["attention_mask"].cuda(),
+            query_enc["input_ids"].to(device=device),
+            query_enc["attention_mask"].to(device=device),
             batch_metadata=batch_metadata,
             filtering_fun=task.filter,
         )
@@ -101,8 +103,8 @@ def evaluate(model, index, opt, data_path, step=None):
         target_tokens = batch.get("target_tokens")
         query_enc, labels, decoder_input_ids = unwrapped_model.tokenize(query, answers, target_tokens=target_tokens)
         if not opt.use_file_passages:
-            query_ids_retriever = query_enc["input_ids"].cuda()
-            query_mask_retriever = query_enc["attention_mask"].cuda()
+            query_ids_retriever = query_enc["input_ids"].to(device=device)
+            query_mask_retriever = query_enc["attention_mask"].to(device=device)
             retrieved_passages, _ = unwrapped_model.retrieve(
                 index,
                 opt.n_context,

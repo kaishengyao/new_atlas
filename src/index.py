@@ -15,17 +15,24 @@ import torch
 from src import dist_utils
 from src.retrievers import EMBEDDINGS_DIM
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 FAISSGPUIndex = Union[
-    faiss.GpuIndexIVFFlat, faiss.GpuIndexIVFPQ, faiss.GpuIndexIVFScalarQuantizer, faiss.GpuIndexFlatIP
+        faiss.GpuIndexIVFFlat if torch.cuda.is_available() else faiss.IndexIVFFlat,
+        faiss.GpuIndexIVFPQ if torch.cuda.is_available() else faiss.IndexIVFPQ, 
+        faiss.GpuIndexIVFScalarQuantizer if torch.cuda.is_available() else faiss.IndexIVFScalarQuantizer, 
+        faiss.GpuIndexFlatIP if torch.cuda.is_available() else faiss.IndexFlatIP
 ]
+
 FAISSIndex = Union[FAISSGPUIndex, faiss.IndexPQ]
 
-GPUIndexConfig = Union[
-    faiss.GpuIndexIVFPQConfig,
-    faiss.GpuIndexIVFFlatConfig,
-    faiss.GpuIndexIVFScalarQuantizerConfig,
-    faiss.GpuIndexFlatConfig,
-]
+if device == 'cuda':
+    GPUIndexConfig = Union[
+        faiss.GpuIndexIVFPQConfig,
+        faiss.GpuIndexIVFFlatConfig,
+        faiss.GpuIndexIVFScalarQuantizerConfig,
+        faiss.GpuIndexFlatConfig,
+    ]
 BITS_PER_CODE: int = 8
 CHUNK_SPLIT: int = 3
 
@@ -44,7 +51,7 @@ class DistributedIndex(object):
     def __init__(self):
         self.embeddings = None
         self.doc_map = dict()
-        self.is_in_gpu = True
+        self.is_in_gpu = True if device=='cuda' else False
 
     def init_embeddings(self, passages, dim: Optional[int] = EMBEDDINGS_DIM):
         self.doc_map = {i: doc for i, doc in enumerate(passages)}
@@ -101,7 +108,9 @@ class DistributedIndex(object):
             with open(passage_shard_path, "rb") as fobj:
                 passages.append(pickle.load(fobj))
             embeddings_shard_path = self._get_saved_embedding_path(path, shard_id)
-            embeddings.append(torch.load(embeddings_shard_path, map_location="cpu").cuda())
+            embedding = torch.load(embeddings_shard_path, map_location="cpu")
+            embedding = embedding.cuda() if device=='cuda' else embedding
+            embeddings.append(embedding)
         self.doc_map = {}
         n_passages = 0
         for chunk in passages:
@@ -114,7 +123,7 @@ class DistributedIndex(object):
         """
         Computes the distance matrix for the query embeddings and embeddings chunk and returns the k-nearest neighbours and corresponding scores.
         """
-        scores = torch.matmul(allqueries.half(), self.embeddings)
+        scores = torch.matmul(allqueries.half(), self.embeddings) if device=='cuda' else torch.matmul(allqueries, self.embeddings.to(dtype=torch.float32))
         scores, indices = torch.topk(scores, topk, dim=1)
 
         return scores, indices
@@ -270,7 +279,7 @@ class DistributedFAISSIndex(DistributedIndex):
         self.faiss_gpu_index = self.gpu_index_factory(dimension, n_list)
 
     @torch.no_grad()
-    def _set_gpu_options(self) -> faiss.GpuMultipleClonerOptions:
+    def _set_gpu_options(self):
         """
         Returns the GPU cloner options neccessary when moving a CPU index to the GPU.
         """
@@ -281,7 +290,7 @@ class DistributedFAISSIndex(DistributedIndex):
         return cloner_opts
 
     @torch.no_grad()
-    def _set_index_config_options(self, index_config: GPUIndexConfig) -> GPUIndexConfig:
+    def _set_index_config_options(self, index_config): #: GPUIndexConfig) : #-> GPUIndexConfig:
         """
         Returns the GPU config options for GPU indexes.
         """
@@ -304,16 +313,20 @@ class DistributedFAISSIndex(DistributedIndex):
         """
         Instantiates and returns the selected GPU index class.
         """
-        self.gpu_resources = faiss.StandardGpuResources()
+        if device != 'cpu':
+            self.gpu_resources = faiss.StandardGpuResources()
         if self.faiss_index_type == "ivfflat":
-            config = self._set_index_config_options(faiss.GpuIndexIVFFlatConfig())
-            return faiss.GpuIndexIVFFlat(
-                self.gpu_resources,
-                dimension,
-                n_list,
-                faiss.METRIC_INNER_PRODUCT,
-                config,
-            )
+            if device == 'cuda':
+                config = self._set_index_config_options(faiss.GpuIndexIVFFlatConfig())
+                return faiss.GpuIndexIVFFlat(
+                    self.gpu_resources,
+                    dimension,
+                    n_list,
+                    faiss.METRIC_INNER_PRODUCT,
+                    config,
+                )
+            else:
+                return faiss.IndexIVFFlat(dimension, n_list, faiss.METRIC_INNER_PRODUCT)
         elif self.faiss_index_type == "flat":
             config = self._set_index_config_options(faiss.GpuIndexFlatConfig())
             return faiss.GpuIndexFlatIP(self.gpu_resources, dimension, config)

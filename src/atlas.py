@@ -21,7 +21,7 @@ from src.retrievers import EMBEDDINGS_DIM
 logger = logging.getLogger(__name__)
 IGNORE_INDEX: int = -100
 BERT_MAX_SEQ_LENGTH: int = 512
-
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def encode_passages(batch, tokenizer, max_length):
     bsz = len(batch)
@@ -244,7 +244,7 @@ class Atlas(nn.Module):
             query_mask = torch.cat([query_mask, padding], dim=1)
             labels = labels.masked_fill(query_mask.bool(), IGNORE_INDEX)
 
-        return labels.cuda(), decoder_input_ids.cuda()
+        return labels.to(device=device), decoder_input_ids.to(device=device)
 
     def tokenize(self, query, target, target_tokens):
         if query is None and target is None:
@@ -581,10 +581,10 @@ class Atlas(nn.Module):
         cfg.n_context = min(self.opt.n_context, tokens["input_ids"].size(1))
 
         reader_loss = self.reader(
-            input_ids=tokens["input_ids"].cuda().view(tokens["input_ids"].size(0), -1),
-            attention_mask=tokens["attention_mask"].cuda().view(tokens["attention_mask"].size(0), -1),
-            decoder_input_ids=decoder_input_ids.cuda(),
-            labels=labels.cuda(),
+            input_ids=tokens["input_ids"].to(device=device).view(tokens["input_ids"].size(0), -1),
+            attention_mask=tokens["attention_mask"].to(device=device).view(tokens["attention_mask"].size(0), -1),
+            decoder_input_ids=decoder_input_ids.to(device=device),
+            labels=labels.to(device=device),
             use_cache=False,
         )
         return reader_loss[0].cpu().item(), reader_loss[1]
@@ -605,8 +605,8 @@ class Atlas(nn.Module):
             prefix_allowed_tokens_fn = self.get_prefix_allowed_tokens_fn(prefix_str)
 
         outputs = self.reader.generate(
-            input_ids=tokens["input_ids"].cuda(),
-            attention_mask=tokens["attention_mask"].cuda(),
+            input_ids=tokens["input_ids"].to(device=device),
+            attention_mask=tokens["attention_mask"].to(device=device),
             num_return_sequences=1,
             max_length=self.opt.generation_max_length,
             min_length=self.opt.generation_min_length,
@@ -644,4 +644,4 @@ def select_crossattention_scores(scores, mode):
 
 
 def _to_cuda(tok_dict):
-    return {k: v.cuda() for k, v in tok_dict.items()}
+    return {k: v.to(device=device) for k, v in tok_dict.items()}

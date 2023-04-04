@@ -18,6 +18,7 @@ logger = getLogger()
 
 GLOO_GROUP = None
 
+device='cuda' if torch.cuda.is_available() else 'cpu'
 
 def sig_handler(signum, frame):
     logger.warning("Signal handler called with signal " + str(signum))
@@ -41,7 +42,8 @@ def init_signal_handler():
     """
     Handle signals sent by SLURM for time limit / pre-emption.
     """
-    signal.signal(signal.SIGUSR1, sig_handler)
+    if device=='cuda':
+        signal.signal(signal.SIGUSR1, sig_handler)
     signal.signal(signal.SIGTERM, term_handler)
     # logger.warning("Signal handler installed.")
 
