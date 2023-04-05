@@ -103,7 +103,7 @@ class Atlas(nn.Module):
         if len(query) > 0:
             query_emb = self.retriever(query_ids_retriever, query_mask_retriever, is_passages=False)
         else:
-            query_emb = torch.empty((0, EMBEDDINGS_DIM)).cuda()  # TODO: broken
+            query_emb = torch.empty((0, EMBEDDINGS_DIM)).to(device=device)  # TODO: broken
         if self.training:
             self.retriever.train()
 
@@ -290,8 +290,8 @@ class Atlas(nn.Module):
             repeated_decoder_input_ids = torch.repeat_interleave(decoder_input_ids, total_context, dim=0)
             repeated_labels = torch.repeat_interleave(labels, total_context, dim=0)
             reader_output = self.reader(
-                input_ids=reader_ids_score.cuda(),
-                attention_mask=reader_mask_score.cuda(),
+                input_ids=reader_ids_score.to(device=device),
+                attention_mask=reader_mask_score.to(device=device),
                 decoder_input_ids=repeated_decoder_input_ids,
                 labels=repeated_labels,
                 use_cache=False,
@@ -388,8 +388,8 @@ class Atlas(nn.Module):
         repeated_decoder_input_ids = torch.repeat_interleave(decoder_input_ids, self.opt.retriever_n_context, dim=0)
         repeated_labels = torch.repeat_interleave(labels, self.opt.retriever_n_context, dim=0)
         reader_output = self.reader(
-            input_ids=reader_ids_score.cuda(),
-            attention_mask=reader_mask_score.cuda(),
+            input_ids=reader_ids_score.to(device=device),
+            attention_mask=reader_mask_score.to(device=device),
             labels=repeated_labels,
             use_cache=False,
         )
@@ -421,8 +421,7 @@ class Atlas(nn.Module):
                 return_tensors="pt",
                 add_special_tokens=False,
             )["attention_mask"]
-            .bool()
-            .cuda()
+            .bool().to(device=device)
         )
 
         query_enc, labels, decoder_input_ids = self.tokenize(query, target, target_tokens)
@@ -511,9 +510,9 @@ class Atlas(nn.Module):
             if self.opt.compute_crossattention_stats or "std" in self.opt.gold_score_mode:
                 crossattention_scores = self.reader.get_crossattention_scores(
                     n_context_training,
-                    reader_mask_training.cuda(),
-                    ids=reader_ids_training.cuda(),
-                    mask_query=query_mask_reader.cuda(),
+                    reader_mask_training.to(device=device),
+                    ids=reader_ids_training.to(device=device),
+                    mask_query=query_mask_reader.to(device=device),
                     labels=labels,
                     mode="all",
                 )

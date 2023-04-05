@@ -57,6 +57,7 @@ from transformers.utils import (
 )
 from transformers.models.bert.configuration_bert import BertConfig
 
+device="cuda" if torch.cuda.is_available() else "cpu"
 
 logger = logging.get_logger(__name__)
 
@@ -264,6 +265,11 @@ class BertSelfAttention(nn.Module):
         self.key = nn.Linear(config.hidden_size, self.all_head_size)
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
 
+        if device == "cpu":
+            self.query = self.query.to(dtype=torch.float32)
+            self.key = self.query.to(dtype=torch.float32)
+            self.value = self.query.to(dtype=torch.float32)
+
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
         self.position_embedding_type = position_embedding_type or getattr(config, "position_embedding_type", "absolute")
         if self.position_embedding_type == "relative_key" or self.position_embedding_type == "relative_key_query":
@@ -287,7 +293,7 @@ class BertSelfAttention(nn.Module):
         past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
         output_attentions: Optional[bool] = False,
     ) -> Tuple[torch.Tensor]:
-        mixed_query_layer = self.query(hidden_states)
+        mixed_query_layer = self.query.to(hidden_states.dtype)(hidden_states)
 
         # If this is instantiated as a cross-attention module, the keys
         # and values come from an encoder; the attention mask needs to be
@@ -380,7 +386,8 @@ class BertSelfOutput(nn.Module):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
-        hidden_states = self.dense(hidden_states)
+
+        hidden_states = self.dense.to(dtype=hidden_states.dtype)(hidden_states)
         hidden_states = self.dropout(hidden_states)
         hidden_states = hidden_states + input_tensor
         hidden_states = self.LayerNorm(hidden_states.float()).type_as(hidden_states)
@@ -422,6 +429,8 @@ class BertAttention(nn.Module):
         past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
         output_attentions: Optional[bool] = False,
     ) -> Tuple[torch.Tensor]:
+        if device == "cpu":
+            hidden_states = hidden_states.to(dtype=torch.float32)    
         self_outputs = self.self(
             hidden_states,
             attention_mask,
@@ -446,7 +455,7 @@ class BertIntermediate(nn.Module):
             self.intermediate_act_fn = config.hidden_act
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dense.to(hidden_states.dtype)(hidden_states)
         hidden_states = self.intermediate_act_fn(hidden_states)
         return hidden_states
 
@@ -459,7 +468,7 @@ class BertOutput(nn.Module):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
-        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dense.to(hidden_states.dtype)(hidden_states)
         hidden_states = self.dropout(hidden_states)
         hidden_states = hidden_states + input_tensor
         hidden_states = self.LayerNorm(hidden_states.float()).type_as(hidden_states)

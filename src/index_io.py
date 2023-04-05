@@ -33,7 +33,7 @@ def load_passages(filenames, maxload=-1):
             else:
                 print("empty line")
 
-        for line in open(fname):
+        for line in open(fname, encoding='utf8'):
             if maxload > -1 and counter >= maxload:
                 break
 
@@ -48,8 +48,14 @@ def load_passages(filenames, maxload=-1):
     passages = []
     global_rank = dist_utils.get_rank()
     world_size = dist_utils.get_world_size()
-    for filename in filenames:
 
+    assert isinstance(filenames, list)
+    fns = []
+    for ns in filenames:
+        ns = ns.split(' ')
+        fns += ns 
+    for filename in fns:
+        filename = filename.replace('\'', '')
         passages, counter = process_jsonl(
             filename,
             counter,
@@ -88,6 +94,9 @@ def load_or_initialize_index(opt):
         passages = []
         if not opt.use_file_passages:
             passages = load_passages(opt.passages, opt.max_passages)
-            index.init_embeddings(passages)
-
+            passages = passages[:opt.max_number_passages] if opt.max_number_passages > 0 else passages
+            if opt.retriever_hidden_size > 0:
+                index.init_embeddings(passages, dim=opt.retriever_hidden_size)
+            else:
+                index.init_embeddings(passages)
     return index, passages

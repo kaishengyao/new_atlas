@@ -8,7 +8,10 @@ import torch
 from torch.optim import adamw as _adamw
 
 AdamW = _adamw.AdamW
-adamw = _adamw.F.adamw
+try: 
+    adamw = _adamw.adamw
+except:
+    adamw = _adamw.F.adamw
 
 
 class AdamWFP32Copy(AdamW):
@@ -136,7 +139,7 @@ class AdamWFP32Copy(AdamW):
                 # update the steps for each param group update
                 state["step"] += 1
                 # record the step after step update
-                state_steps.append(state["step"])
+                state_steps.append(torch.tensor(state["step"]))
 
             adam_params = {
                 "params": params_with_grad,

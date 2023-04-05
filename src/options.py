@@ -172,6 +172,7 @@ class Options:
             type=str,
             help="t5 Architecture for reader FID model, e.g. google/t5-xl-lm-adapt",
             choices=[
+                "google/flan-t5-small",
                 "t5-small",
                 "t5-base",
                 "t5-large",
@@ -188,6 +189,18 @@ class Options:
             ],
         )
         self.parser.add_argument(
+            "--num_encoder_layers",
+            type=int,
+            default=-1,
+            help="the number of layers in encoder for reader, default -1 to use the pretrained model configuration. can set to a value e.g., 2 to reduce memory"
+        )
+        self.parser.add_argument(
+            "--num_decoder_layers",
+            type=int,
+            default=-1,
+            help="the number of layers in decoder for reader, default -1 to use the pretrained model configuration. can set to a value e.g., 2 to reduce memory"
+        )
+        self.parser.add_argument(
             "--text_maxlength",
             type=int,
             default=200,
@@ -200,8 +213,35 @@ class Options:
             help="Maximum length of target outputs in tokens when training the model. Targets longer than this will be truncated. No truncation if -1",
         )
         self.parser.add_argument("--n_context", type=int, default=1, help="number of top k passages to pass to reader")
-
+        self.parser.add_argument("--max_number_passages", 
+                                 type=int,
+                                 default=-1,
+                                 help="maximum number of raw passages to use. -1 default to use all passages.")
         # Retriever modelling options
+        self.parser.add_argument(
+            "--num_retriever_layers",
+            type=int,
+            default=-1,
+            help="number of layers in retriver. -1 to use the pretrained model spec."
+        )
+        self.parser.add_argument(
+            "--num_retriever_attention_heads",
+            type=int,
+            default=-1,
+            help="number of attention heads. default -1 that uses the pretrained model configuration."
+        )
+        self.parser.add_argument(
+            "--retriever_hidden_size",
+            type=int,
+            default=-1,
+            help="hidden size for retriever. default -1 to use the pretrained model configuration"
+        )
+        self.parser.add_argument(
+            "--ignore_mismatched_sizes",
+            type=bool,
+            default=False,
+            help="ignore mismatched size during loading states. default is False. "
+        )
         self.parser.add_argument(
             "--passages",
             nargs="+",

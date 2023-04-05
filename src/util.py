@@ -18,7 +18,7 @@ import torch
 from src import dist_utils
 
 Number = Union[float, int]
-
+device = "cuda" if torch.cuda.is_available() else "cpu"
 logger = logging.getLogger(__name__)
 
 
@@ -209,7 +209,7 @@ def compute_grad_stats(model):
                 stats += [s1, s2, s3, s4]
             else:
                 stats += [0.0, 0.0, 0.0, 0.0]
-        stats = torch.Tensor(stats).cuda()
+        stats = torch.Tensor(stats).to(device=device)
         if torch.distributed.is_initialized():
             torch.distributed.all_reduce(stats)
         stats = stats.view(-1, 4)

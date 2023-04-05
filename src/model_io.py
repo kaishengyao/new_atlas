@@ -12,7 +12,6 @@ from typing import Dict, List, Tuple, Union
 
 import torch
 import transformers
-
 import src.fid
 from src import dist_utils
 from src.atlas import Atlas
@@ -42,7 +41,16 @@ def load_retriever(opt, opt_checkpoint=None):
     if opt.use_file_passages:
         return None, None
 
-    contriever_encoder = Contriever.from_pretrained(opt.retriever_model_path)
+    kwargs = {}
+    if opt.num_retriever_layers > 0:
+        kwargs.update({"num_hidden_layers": opt.num_retriever_layers})
+    if opt.num_retriever_attention_heads > 0:
+        kwargs.update({"num_attention_heads": opt.num_retriever_attention_heads})
+    if opt.retriever_hidden_size > 0:
+        kwargs.update({"hidden_size": opt.retriever_hidden_size})
+    if opt.ignore_mismatched_sizes:
+        kwargs.update({"ignore_mismatched_sizes": opt.ignore_mismatched_sizes})
+    contriever_encoder = Contriever.from_pretrained(opt.retriever_model_path, **kwargs)
     retriever_tokenizer = transformers.AutoTokenizer.from_pretrained(opt.retriever_model_path)
 
     # once you have done query side training you cannot go back to a parameter-tied retriever
@@ -74,7 +82,12 @@ def _convert_state_dict_from_dual_encoder_retriever(state_dict):
 def load_reader(opt):
     reader = None
     if not opt.retrieve_only:
-        reader = src.fid.FiD.from_pretrained(opt.reader_model_type)
+        kwargs = {}
+        if opt.num_decoder_layers != -1:
+            kwargs.update({"num_decoder_layers": opt.num_decoder_layers})
+        if opt.num_encoder_layers != -1:
+            kwargs.update({"num_layers": opt.num_encoder_layers})
+        reader = src.fid.FiD.from_pretrained(opt.reader_model_type, **kwargs)
 
         if opt.compute_crossattention_stats or "eval" in opt.gold_score_mode or "std" in opt.gold_score_mode:
             reader.overwrite_forward_crossattention()
@@ -103,6 +116,7 @@ def _cast_and_set_attrs_and_send_to_device(model, opt):
     set_dropout(model, opt.dropout)
     _cast_atlas_to_precision(model, opt.precision)
     model = model.to(opt.device)
+
     return model
 
 
