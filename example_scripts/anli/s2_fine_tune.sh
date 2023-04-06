@@ -1,3 +1,8 @@
+retriever_hidden_size=$1
+encoder_layers=$2
+decoder_layers=$3
+retriever_layers=$4
+
 python3 new_atlas/train.py --shuffle --train_retriever \
                 --gold_score_mode=pdist \
                 --use_gradient_checkpoint_reader \
@@ -24,13 +29,12 @@ python3 new_atlas/train.py --shuffle --train_retriever \
                 --checkpoint_dir=drive/MyDrive/experiments/rag/new_atlas/results \
                 --index_mode=flat \
                 --task=qa \
-                --passages='drive/MyDrive/data/corpora/wiki/enwiki-dec2018/text-list-100-sec.jsonl drive/MyDrive/data/corpora/wiki/enwiki-dec2018/infoboxjsonl' \
+                --passages='drive/MyDrive/data/corpora/wiki/enwiki-dec2018/text-list-100-sec.jsonl drive/MyDrive/data/corpora/wiki/enwiki-dec2018/infobox.jsonl' \
                 --save_index_n_shards=2 \
                 --ignore_mismatched_sizes=True \
                 --num_retriever_attention_heads=2 \
-                --retriever_hidden_size=16 \
-                --num_encoder_layers=2 \
-                --num_decoder_layers=2 \
-                --num_retriever_layers=2 \
-                --retriever_hidden_size=16 \
+                --retriever_hidden_size=${retriever_hidden_size} \
+                --num_encoder_layers=${encoder_layers} \
+                --num_decoder_layers=${decoder_layers} \
+                --num_retriever_layers=${retriever_layers} \
                 --ignore_mismatched_sizes=True 
