@@ -1,10 +1,18 @@
-# Download passage files
+# Description
+The goal of this set of experiments is to 
+1) run the baseline of using RAG framework
+2) run the baseline of no using retrieval, but use FID only
+
+# Setup
+## Download passage files
 ```
 python3 .\new_atlas\preprocessing\download_corpus.py --corpus=corpora/wiki/enwiki-dec2018 --output_directory=drive/MyDrive/data/corpora
 ```
 
+# RAG
 
-# Fine-tune few short models
+We first train a simple/small model. 
+## Fine-tune few short models
 ```
 python3 new_atlas/train.py --shuffle --train_retriever \
                 --gold_score_mode=pdist \
@@ -44,6 +52,8 @@ python3 new_atlas/train.py --shuffle --train_retriever \
 ```
 
 ## Larger training size
+We then increase the model size and observe its eval loss. 
+
 ```
 export CUDA_VISIBLE_DEVICES=0
 sh new_atlas/example_scripts/anli/s2_fine_tune.sh 16 2 2 2 10000
@@ -55,10 +65,10 @@ export CUDA_VISIBLE_DEVICES=2
 sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 6 6 10000
 
 export CUDA_VISIBLE_DEVICES=3
-sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 6 8 10000
+sh new_atlas/example_scripts/anli/s2_fine_tune.sh 128 8 12 12 100000
 
 export CUDA_VISIBLE_DEVICES=1
-sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 12 12 10000
+sh new_atlas/example_scripts/anli/s2_fine_tune.sh 128 4 12 12 100000
 
 export CUDA_VISIBLE_DEVICES=0
 sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 4 12 12 100000
@@ -73,4 +83,16 @@ sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 4 12 12 100000
 64/2/2/2|  0      | 0   | 0.439     |
 64/2/6/6|  0      | 0   | 0.424     |
 64/2/6/8|  0      | 0   | 0.416     |
+64/4/12/12  |     |     |           |
+128/4/12/12 |     |     |           |
+128/8/12/12 |     |     |           |
 
+The above table shows that the larger the model, the smaller the loss. 
+
+# FID only
+We remove the retrieval model and the retrieval results. This want to check the eval loss with only FID model.
+
+```
+export CUDA_VISIBLE_DEVICES=0
+sh new_atlas/example_scripts/anli/s2_fine_tune.no_retrieval.sh 12 12 10000
+```
