@@ -46,15 +46,31 @@ python3 new_atlas/train.py --shuffle --train_retriever \
 ## Larger training size
 ```
 export CUDA_VISIBLE_DEVICES=0
-sh new_atlas/example_scripts/anli/s2_fine_tune.sh 16 2 2 2 
+sh new_atlas/example_scripts/anli/s2_fine_tune.sh 16 2 2 2 10000
 
 export CUDA_VISIBLE_DEVICES=1
-sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 2 2 
+sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 2 2 10000
 
 export CUDA_VISIBLE_DEVICES=2
-sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 6 6 
+sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 6 6 10000
 
 export CUDA_VISIBLE_DEVICES=3
-sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 6 8 
+sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 6 8 10000
+
+export CUDA_VISIBLE_DEVICES=1
+sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 2 12 12 10000
+
+export CUDA_VISIBLE_DEVICES=0
+sh new_atlas/example_scripts/anli/s2_fine_tune.sh 64 4 12 12 100000
 
 ```
+
+### Results
+
+        |   EM    | F1  | Eval loss (10k) | Eval loss (100k)
+----    |  -----  | --- | -----     | ---- |
+16/2/2/2|  0      | 0   | 0.444     | 
+64/2/2/2|  0      | 0   | 0.439     |
+64/2/6/6|  0      | 0   | 0.424     |
+64/2/6/8|  0      | 0   | 0.416     |
+

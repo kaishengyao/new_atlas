@@ -2,6 +2,7 @@ retriever_hidden_size=$1
 encoder_layers=$2
 decoder_layers=$3
 retriever_layers=$4
+total_steps=$5
 
 python3 new_atlas/train.py --shuffle --train_retriever \
                 --gold_score_mode=pdist \
@@ -23,8 +24,8 @@ python3 new_atlas/train.py --shuffle --train_retriever \
                 --text_maxlength=512 \
                 --target_maxlength=5 \
                 --n_context=10 \
-                --total_steps=10000 \
-                --save_freq=500 \
+                --total_steps=${total_steps} \
+                --save_freq=5000 \
                 --retriever_n_context=10 \
                 --checkpoint_dir=drive/MyDrive/experiments/rag/new_atlas/results \
                 --index_mode=flat \
